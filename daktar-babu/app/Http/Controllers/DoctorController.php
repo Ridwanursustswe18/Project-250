@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Appoinments;
 use App\Models\Doctor;
+use App\Models\Reviews;
 use App\Models\User;
 use Exception;
 use Illuminate\Http\Request;
@@ -11,22 +13,31 @@ use Illuminate\Support\Facades\DB;
 class DoctorController extends Controller
 {
     //
+    public function dashboard()
+    {
+        $doctor = auth()->user();
+
+        $appointments = Appoinments::where('doc_id', $doctor->id)->where('status', 'upcoming')->get();
+        $reviews = Reviews::where('doc_id', $doctor->id)->where('status', 'active')->get();
+
+        //return all data to dashboard
+        return view('dashboard')->with(['doctor' => $doctor, 'appointments' => $appointments, 'reviews' => $reviews]);
+    }
     public function index(Doctor $doctor)
     {
         try {
-          
-            $id = auth()->user()->id;
-            if($id==$doctor->doc_id){
-            $doctorProfile = DB::table('users')
-                ->join('doctors', 'users.id', '=', 'doctors.doc_id')
-                ->select('users.*', 'doctors.*')
-                ->where('users.id', '=', $id)
-                ->get();
 
-            return $doctorProfile;
-            }
-            else{
-                return response("you are not allowed",403);
+            $id = auth()->user()->id;
+            if ($id == $doctor->doc_id) {
+                $doctorProfile = DB::table('users')
+                    ->join('doctors', 'users.id', '=', 'doctors.doc_id')
+                    ->select('users.*', 'doctors.*')
+                    ->where('users.id', '=', $id)
+                    ->get();
+
+                return $doctorProfile;
+            } else {
+                return response("you are not allowed", 403);
             }
         } catch (Exception $e) {
             $e->getMessage();
@@ -47,10 +58,10 @@ class DoctorController extends Controller
     {
         try {
             $id = auth()->user()->id;
-           
+
             $user = User::find($id);
             if ($user->id == $doctor->doc_id) {
-              
+
                 $request->validate([
                     'name' => 'required',
                     'email' => 'required|email|unique:users,email,',
@@ -85,5 +96,30 @@ class DoctorController extends Controller
         }
 
     }
+    public function store(Request $request)
+    {
+        //this controller is to store booking details post from mobile app
+        $reviews = new Reviews();
+        //this is to update the appointment status from "upcoming" to "complete"
+        $appointment = Appoinments::where('id', $request->get('appointment_id'))->first();
+       
+        //save the ratings and reviews from user
+        $reviews->user_id = auth()->user()->id;
+        $reviews->doc_id = $request->get('doctor_id');
+        $reviews->ratings = $request->get('ratings');
+        $reviews->reviews = $request->get('reviews');
+        $reviews->reviewed_by =auth()->user()->name;
+        $reviews->status = 'active';
+        $reviews->save();
+
+        //change appointment status
+        $appointment->status = 'complete';
+        $appointment->save();
+
+        return response()->json([
+            'success' => 'The appointment has been completed and reviewed successfully!',
+        ], 200);
+    }
+
 
 }
