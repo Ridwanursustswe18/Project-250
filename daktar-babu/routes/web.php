@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AppoinmentController;
 use App\Http\Controllers\DoctorController;
 use App\Http\Controllers\UserController;
 use App\Http\Middleware\CheckDoctor;
@@ -34,5 +35,9 @@ Route::group(['prefix' => '/users','middleware'=>['auth','CheckUser:user']], fun
     Route::patch('/{userdetail}', [UserController::class, 'update']);
     Route::get('/{userdetail}/edit', [UserController::class, 'edit']);
     Route::get('/{userdetail}/profile', [UserController::class, 'index']);
+    Route::get('/doctorsinfo', [UserController::class, 'show']);
+    Route::post('/book',[AppoinmentController::class,'store']);
+    Route::get('/appoinments', [AppoinmentController::class, 'index']);
+
 });
 require __DIR__.'/auth.php';
