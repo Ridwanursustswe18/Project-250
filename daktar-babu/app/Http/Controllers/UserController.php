@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Doctor;
 use App\Models\User;
 use App\Models\UserDetails;
 use Exception;
@@ -10,6 +11,24 @@ use Illuminate\Support\Facades\DB;
 
 class UserController extends Controller
 {
+    public function show(){
+        $user =array();
+        $user = auth()->user();
+        $doctor = User::where('type','doctor')->get();
+        $doctorDetatils = Doctor::all();
+        foreach ($doctorDetatils as $data) {
+            //sorting doctor name and doctor details
+            foreach ($doctor as $info) {
+                if ($data['doc_id'] == $info['id']) {
+                    $data['doctor_name'] = $info['name'];
+                    $data['doctor_profile'] = $info['profile_photo_url'];
+                    
+                }
+            }
+        }
+        $user['doctor'] = $doctorDetatils;
+        return $doctor;
+    }
     public function index(UserDetails $userdetail)
     {
         try {
