@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Controllers\DoctorController;
+use App\Http\Controllers\UserController;
+use App\Http\Middleware\CheckDoctor;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -16,5 +19,20 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return ['Laravel' => app()->version()];
 });
-
+Route::get('/token', function () {
+    return csrf_token();
+});
+Route::group(['prefix' => '/doctors','middleware'=>['auth','CheckDoctor:doctor']], function () {
+    Route::patch('/{doctor}',[DoctorController::class,'update']);
+    Route::get('/{doctor}/edit', [DoctorController::class, 'edit']);
+    Route::get('/{doctor}/profile', [DoctorController::class, 'index']);
+    Route::get('dashboard',function(){
+        return 'Hello Dashboard';
+    });
+});
+Route::group(['prefix' => '/users','middleware'=>['auth','CheckUser:user']], function () {
+    Route::patch('/{userdetail}', [UserController::class, 'update']);
+    Route::get('/{userdetail}/edit', [UserController::class, 'edit']);
+    Route::get('/{userdetail}/profile', [UserController::class, 'index']);
+});
 require __DIR__.'/auth.php';
