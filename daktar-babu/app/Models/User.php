@@ -59,9 +59,9 @@ class User extends Authenticatable
         return $this->hasMany(Appointments::class, 'user_id');
     }
 
-    // //a user may has many reviews
-    // public function reviews()
-    // {
-    //     return $this->hasMany(Reviews::class, 'user_id');
-    // }
+    //a user may has many reviews
+    public function reviews()
+    {
+        return $this->hasMany(Reviews::class, 'user_id');
+    }
 }

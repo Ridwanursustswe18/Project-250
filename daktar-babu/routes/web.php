@@ -27,9 +27,7 @@ Route::group(['prefix' => '/doctors','middleware'=>['auth','CheckDoctor:doctor']
     Route::patch('/{doctor}',[DoctorController::class,'update']);
     Route::get('/{doctor}/edit', [DoctorController::class, 'edit']);
     Route::get('/{doctor}/profile', [DoctorController::class, 'index']);
-    Route::get('dashboard',function(){
-        return 'Hello Dashboard';
-    });
+    Route::get('/dashboard',[DoctorController::class,'dashboard']);
 });
 Route::group(['prefix' => '/users','middleware'=>['auth','CheckUser:user']], function () {
     Route::patch('/{userdetail}', [UserController::class, 'update']);
@@ -38,6 +36,7 @@ Route::group(['prefix' => '/users','middleware'=>['auth','CheckUser:user']], fun
     Route::get('/doctorsinfo', [UserController::class, 'show']);
     Route::post('/book',[AppoinmentController::class,'store']);
     Route::get('/appoinments', [AppoinmentController::class, 'index']);
+    Route::post('/reviews', [DoctorController::class, 'store']);
 
 });
 require __DIR__.'/auth.php';
