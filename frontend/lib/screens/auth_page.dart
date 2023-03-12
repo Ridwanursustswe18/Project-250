@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-
 import '../components/login_form.dart';
 import '../components/social_button.dart';
 import '../utils/config.dart';
@@ -27,7 +26,7 @@ class _AuthPageState extends State<AuthPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
-            AppText.enText['welcome_Text']!,
+            AppText.enText['welcome_text']!,
             style: const TextStyle(
               fontSize: 36,
               fontWeight: FontWeight.bold,
@@ -35,7 +34,7 @@ class _AuthPageState extends State<AuthPage> {
           ),
           Config.spaceSmall,
           Text(
-            AppText.enText['signIn_Text']!,
+            AppText.enText['signIn_text']!,
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -48,7 +47,7 @@ class _AuthPageState extends State<AuthPage> {
             child: TextButton(
               onPressed: () {},
               child: Text(
-                AppText.enText['welcome_Text']!,
+                AppText.enText['welcome_text']!,
                 style: const TextStyle(
                   fontSize: 36,
                   fontWeight: FontWeight.bold,
@@ -77,6 +76,27 @@ class _AuthPageState extends State<AuthPage> {
             ],
           ),
           Config.spaceSmall,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Text(
+                AppText.enText['signUp_text']!,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.normal,
+                  color: Colors.grey.shade500,
+                ),
+              ),
+              const Text(
+                'Sign Up',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              )
+            ],
+          )
         ],
       )),
     ));
