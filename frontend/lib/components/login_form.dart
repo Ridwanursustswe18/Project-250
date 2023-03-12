@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-
 import '../utils/config.dart';
 import 'button.dart';
 
@@ -67,7 +66,9 @@ class _LoginFormState extends State<LoginForm> {
           Button(
               width: double.infinity,
               title: 'Sign In',
-              onPressed: () {},
+              onPressed: () {
+                Navigator.of(context).pushNamed('main');
+              },
               disable: false)
         ],
       ),
