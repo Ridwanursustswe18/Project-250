@@ -13,6 +13,10 @@ class AuthenticatedSessionController extends Controller
     /**
      * Handle an incoming authentication request.
      */
+    public function showLoginForm()
+    {
+        return view('auth.login');
+    }
     public function store(LoginRequest $request): Response
     {
         $request->authenticate();
