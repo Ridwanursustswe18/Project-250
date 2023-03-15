@@ -21,7 +21,10 @@ class RegisteredUserController extends Controller
      *
      * @throws \Illuminate\Validation\ValidationException
      */
-    public function store(Request $request): Response
+public function showRegistrationForm(){
+    return view('auth.register');
+}
+     public function store(Request $request): Response
     {
         try {
             $request->validate([
