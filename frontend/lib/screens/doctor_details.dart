@@ -1,19 +1,34 @@
-import 'package:daktar_babu/components/button.dart';
-import 'package:daktar_babu/components/custom_appbar.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../components//custom_appbar.dart';
+import '../components/button.dart';
+import '../models/auth_model.dart';
+import '../providers/dio_provider.dart';
 import '../utils/config.dart';
 
 class DoctorDetails extends StatefulWidget {
-  const DoctorDetails({super.key});
+  const DoctorDetails({Key? key, required this.doctor, required this.isFav})
+      : super(key: key);
+  final Map<String, dynamic> doctor;
+  final bool isFav;
 
   @override
   State<DoctorDetails> createState() => _DoctorDetailsState();
 }
 
 class _DoctorDetailsState extends State<DoctorDetails> {
+  Map<String, dynamic> doctor = {};
   bool isFav = false;
+
+  @override
+  void initState() {
+    doctor = widget.doctor;
+    isFav = widget.isFav;
+    super.initState();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -21,41 +36,81 @@ class _DoctorDetailsState extends State<DoctorDetails> {
         appTitle: 'Doctor Details',
         icon: const FaIcon(Icons.arrow_back_ios),
         actions: [
+          //Favarite Button
           IconButton(
-              onPressed: () {
-                setState(() {
-                  isFav = !isFav;
-                });
-              },
-              icon: FaIcon(
-                  isFav ? Icons.favorite_rounded : Icons.favorite_outline,
-                  color: Colors.red)),
+            //press this button to add/remove favorite doctor
+            onPressed: () async {
+              //get latest favorite list from auth model
+              final list =
+                  Provider.of<AuthModel>(context, listen: false).getFav;
+
+              //if doc id is already exist, mean remove the doc id
+              if (list.contains(doctor['doc_id'])) {
+                list.removeWhere((id) => id == doctor['doc_id']);
+              } else {
+                //else, add new doctor to favorite list
+                list.add(doctor['doc_id']);
+              }
+
+              //update the list into auth model and notify all widgets
+              Provider.of<AuthModel>(context, listen: false).setFavList(list);
+
+              final SharedPreferences prefs =
+                  await SharedPreferences.getInstance();
+              final token = prefs.getString('token') ?? '';
+
+              if (token.isNotEmpty && token != '') {
+                //update the favorite list into database
+                final response = await DioProvider().storeFavDoc(token, list);
+                //if insert successfully, then change the favorite status
+
+                if (response == 200) {
+                  setState(() {
+                    isFav = !isFav;
+                  });
+                }
+              }
+            },
+            icon: FaIcon(
+              isFav ? Icons.favorite_rounded : Icons.favorite_outline,
+              color: Colors.red,
+            ),
+          )
         ],
       ),
       body: SafeArea(
-          child: Column(
-        children: <Widget>[
-          const AboutDoctor(),
-          const DetailBody(),
-          const Spacer(),
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Button(
+        child: Column(
+          children: <Widget>[
+            AboutDoctor(
+              doctor: doctor,
+            ),
+            DetailBody(
+              doctor: doctor,
+            ),
+            const Spacer(),
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Button(
                 width: double.infinity,
                 title: 'Book Appointment',
                 onPressed: () {
-                  Navigator.of(context).pushNamed('booking_page');
+                  Navigator.of(context).pushNamed('booking_page',
+                      arguments: {"doctor_id": doctor['doc_id']});
                 },
-                disable: false),
-          )
-        ],
-      )),
+                disable: false,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
 
 class AboutDoctor extends StatelessWidget {
-  const AboutDoctor({Key? key}) : super(key: key);
+  const AboutDoctor({Key? key, required this.doctor}) : super(key: key);
+
+  final Map<dynamic, dynamic> doctor;
 
   @override
   Widget build(BuildContext context) {
@@ -64,15 +119,17 @@ class AboutDoctor extends StatelessWidget {
       width: double.infinity,
       child: Column(
         children: <Widget>[
-          const CircleAvatar(
+          CircleAvatar(
             radius: 65.0,
-            backgroundImage: AssetImage('assets/doctor8.jpg'),
+            backgroundImage: NetworkImage(
+              "http://127.0.0.1:8000${doctor['doctor_profile']}",
+            ),
             backgroundColor: Colors.white,
           ),
-          Config.spaceSmall,
-          const Text(
-            'Dr xyz',
-            style: TextStyle(
+          Config.spaceMedium,
+          Text(
+            "Dr ${doctor['doctor_name']}",
+            style: const TextStyle(
               color: Colors.black,
               fontSize: 24.0,
               fontWeight: FontWeight.bold,
@@ -112,29 +169,31 @@ class AboutDoctor extends StatelessWidget {
 }
 
 class DetailBody extends StatelessWidget {
-  const DetailBody({Key? key}) : super(key: key);
-  // final Map<dynamic, dynamic> doctor;
+  const DetailBody({Key? key, required this.doctor}) : super(key: key);
+  final Map<dynamic, dynamic> doctor;
 
   @override
   Widget build(BuildContext context) {
     Config().init(context);
     return Container(
-      padding: const EdgeInsets.all(20),
-      margin: const EdgeInsets.only(bottom: 30),
+      padding: const EdgeInsets.all(10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: const <Widget>[
+        children: <Widget>[
           Config.spaceSmall,
-          DoctorInfo(),
-          Config.spaceSmall,
-          Text(
+          DoctorInfo(
+            patients: doctor['patients'],
+            exp: doctor['experience'],
+          ),
+          Config.spaceMedium,
+          const Text(
             'About Doctor',
             style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
           ),
           Config.spaceSmall,
           Text(
-            'Dr. error salman is an experience Dentist Specialist at Sarawak, graduated since 2008, and completed his/her training at Sungai Buloh General Hospital.',
-            style: TextStyle(
+            'Dr. ${doctor['doctor_name']} is an experience ${doctor['category']} Specialist at Sarawak, graduated since 2008, and completed his/her training at Sungai Buloh General Hospital.',
+            style: const TextStyle(
               fontWeight: FontWeight.w500,
               height: 1.5,
             ),
@@ -148,25 +207,34 @@ class DetailBody extends StatelessWidget {
 }
 
 class DoctorInfo extends StatelessWidget {
-  const DoctorInfo({Key? key}) : super(key: key);
+  const DoctorInfo({Key? key, required this.patients, required this.exp})
+      : super(key: key);
 
-  // final int patients;
-  // final int exp;
+  final int patients;
+  final int exp;
 
   @override
   Widget build(BuildContext context) {
-    // Config().init(context);
     return Row(
-      children: const <Widget>[
-        InfoCard(label: 'Patients', value: '109'),
-        SizedBox(
+      children: <Widget>[
+        InfoCard(
+          label: 'Patients',
+          value: '$patients',
+        ),
+        const SizedBox(
           width: 15,
         ),
-        InfoCard(label: 'Experiences', value: '10 years'),
-        SizedBox(
+        InfoCard(
+          label: 'Experiences',
+          value: '$exp years',
+        ),
+        const SizedBox(
           width: 15,
         ),
-        InfoCard(label: 'Rating', value: '4.6'),
+        const InfoCard(
+          label: 'Rating',
+          value: '4.6',
+        ),
       ],
     );
   }
@@ -182,33 +250,39 @@ class InfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Expanded(
-        child: Container(
-      decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(15), color: Config.primaryColor),
-      padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 15),
-      child: Column(
-        children: <Widget>[
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.black,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(15),
+          color: Config.primaryColor,
+        ),
+        padding: const EdgeInsets.symmetric(
+          vertical: 15,
+          horizontal: 15,
+        ),
+        child: Column(
+          children: <Widget>[
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.black,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
             ),
-          ),
-          const SizedBox(
-            height: 10,
-          ),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
+            const SizedBox(
+              height: 10,
             ),
-          ),
-        ],
+            Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
       ),
-    ));
+    );
   }
 }

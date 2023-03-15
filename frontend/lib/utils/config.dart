@@ -1,3 +1,4 @@
+//set constant config here
 import 'package:flutter/material.dart';
 
 class Config {

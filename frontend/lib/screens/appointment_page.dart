@@ -1,66 +1,57 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
+import '../providers/dio_provider.dart';
 import '../utils/config.dart';
 
 class AppointmentPage extends StatefulWidget {
-  const AppointmentPage({super.key});
+  const AppointmentPage({Key? key}) : super(key: key);
 
   @override
   State<AppointmentPage> createState() => _AppointmentPageState();
 }
 
+//enum for appointment status
 enum FilterStatus { upcoming, complete, cancel }
 
 class _AppointmentPageState extends State<AppointmentPage> {
-  FilterStatus status = FilterStatus.upcoming;
+  FilterStatus status = FilterStatus.upcoming; //initial status
   Alignment _alignment = Alignment.centerLeft;
-  List<dynamic> schedules = [
-    {
-      "doctor_name": "Dr Akash Ahmed",
-      "doctor_profile": "assets/doctor2.jpg",
-      "category": "Dental",
-      "status": FilterStatus.upcoming,
-    },
-    {
-      "doctor_name": "Dr Shakil Ahmed",
-      "doctor_profile": "assets/doctor3.jpg",
-      "category": "Dental",
-      "status": FilterStatus.complete,
-    },
-    {
-      "doctor_name": "Dr Error Salman",
-      "doctor_profile": "assets/doctor4.jpg",
-      "category": "Dental",
-      "status": FilterStatus.upcoming,
-    },
-    {
-      "doctor_name": "Dr Usman Goni",
-      "doctor_profile": "assets/doctor5.jpg",
-      "category": "Dental",
-      "status": FilterStatus.complete,
-    },
-    {
-      "doctor_name": "Dr Mohajot",
-      "doctor_profile": "assets/doctor6.jpg",
-      "category": "General",
-      "status": FilterStatus.cancel,
-    },
-  ];
+  List<dynamic> schedules = [];
+
+  //get appointments details
+  Future<void> getAppointments() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token') ?? '';
+    final appointment = await DioProvider().getAppointments(token);
+    if (appointment != 'Error') {
+      setState(() {
+        schedules = json.decode(appointment);
+      });
+    }
+  }
+
+  @override
+  void initState() {
+    getAppointments();
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
     List<dynamic> filteredSchedules = schedules.where((var schedule) {
-      // switch (schedule['status']) {
-      //   case 'upcoming':
-      //     schedule['status'] = FilterStatus.upcoming;
-      //     break;
-      //   case 'complete':
-      //     schedule['status'] = FilterStatus.complete;
-      //     break;
-      //   case 'cancel':
-      //     schedule['status'] = FilterStatus.cancel;
-      //     break;
-      // }
+      switch (schedule['status']) {
+        case 'upcoming':
+          schedule['status'] = FilterStatus.upcoming;
+          break;
+        case 'complete':
+          schedule['status'] = FilterStatus.complete;
+          break;
+        case 'cancel':
+          schedule['status'] = FilterStatus.cancel;
+          break;
+      }
       return schedule['status'] == status;
     }).toList();
 
@@ -145,101 +136,106 @@ class _AppointmentPageState extends State<AppointmentPage> {
             Config.spaceSmall,
             Expanded(
               child: ListView.builder(
-                  itemCount: filteredSchedules.length,
-                  itemBuilder: (context, index) {
-                    var schedule = filteredSchedules[index];
-                    bool isLastElement = filteredSchedules.length + 1 == index;
-                    return Card(
-                      shape: RoundedRectangleBorder(
-                        side: const BorderSide(
-                          color: Colors.grey,
-                        ),
-                        borderRadius: BorderRadius.circular(20),
+                itemCount: filteredSchedules.length,
+                itemBuilder: ((context, index) {
+                  var schedule = filteredSchedules[index];
+                  bool isLastElement = filteredSchedules.length + 1 == index;
+                  return Card(
+                    shape: RoundedRectangleBorder(
+                      side: const BorderSide(
+                        color: Colors.grey,
                       ),
-                      margin: !isLastElement
-                          ? const EdgeInsets.only(bottom: 20)
-                          : EdgeInsets.zero,
-                      child: Padding(
-                        padding: const EdgeInsets.all(15),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Row(
-                              children: [
-                                CircleAvatar(
-                                  backgroundImage:
-                                      AssetImage(schedule['doctor_profile']),
-                                ),
-                                const SizedBox(
-                                  width: 10,
-                                ),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      schedule['doctor_name'],
-                                      style: const TextStyle(
-                                        color: Colors.black,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                    const SizedBox(
-                                      height: 5,
-                                    ),
-                                    Text(
-                                      schedule['category'],
-                                      style: const TextStyle(
-                                        color: Colors.grey,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            const SizedBox(
-                              height: 15,
-                            ),
-                            const ScheduleCard(),
-                            const SizedBox(
-                              height: 15,
-                            ),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  child: OutlinedButton(
-                                    onPressed: () {},
-                                    child: const Text(
-                                      'Cancel',
-                                      style:
-                                          TextStyle(color: Config.primaryColor),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    margin: !isLastElement
+                        ? const EdgeInsets.only(bottom: 20)
+                        : EdgeInsets.zero,
+                    child: Padding(
+                      padding: const EdgeInsets.all(15),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(
+                            children: [
+                              CircleAvatar(
+                                backgroundImage: NetworkImage(
+                                    "http://127.0.0.1:8000${schedule['doctor_profile']}"),
+                              ),
+                              const SizedBox(
+                                width: 10,
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    schedule['doctor_name'],
+                                    style: const TextStyle(
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.w700,
                                     ),
                                   ),
-                                ),
-                                const SizedBox(
-                                  width: 20,
-                                ),
-                                Expanded(
-                                  child: OutlinedButton(
-                                    style: OutlinedButton.styleFrom(
-                                      backgroundColor: Config.primaryColor,
-                                    ),
-                                    onPressed: () {},
-                                    child: const Text(
-                                      'Reschedule',
-                                      style: TextStyle(color: Colors.white),
+                                  const SizedBox(
+                                    height: 5,
+                                  ),
+                                  Text(
+                                    schedule['category'],
+                                    style: const TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          const SizedBox(
+                            height: 15,
+                          ),
+                          ScheduleCard(
+                            date: schedule['date'],
+                            day: schedule['day'],
+                            time: schedule['time'],
+                          ),
+                          const SizedBox(
+                            height: 15,
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: () {},
+                                  child: const Text(
+                                    'Cancel',
+                                    style:
+                                        TextStyle(color: Config.primaryColor),
+                                  ),
                                 ),
-                              ],
-                            ),
-                          ],
-                        ),
+                              ),
+                              const SizedBox(
+                                width: 20,
+                              ),
+                              Expanded(
+                                child: OutlinedButton(
+                                  style: OutlinedButton.styleFrom(
+                                    backgroundColor: Config.primaryColor,
+                                  ),
+                                  onPressed: () {},
+                                  child: const Text(
+                                    'Reschedule',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                    );
-                  }),
+                    ),
+                  );
+                }),
+              ),
             ),
           ],
         ),
@@ -249,7 +245,12 @@ class _AppointmentPageState extends State<AppointmentPage> {
 }
 
 class ScheduleCard extends StatelessWidget {
-  const ScheduleCard({Key? key}) : super(key: key);
+  const ScheduleCard(
+      {Key? key, required this.date, required this.day, required this.time})
+      : super(key: key);
+  final String date;
+  final String day;
+  final String time;
 
   @override
   Widget build(BuildContext context) {
@@ -263,36 +264,36 @@ class ScheduleCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: const <Widget>[
-          Icon(
+        children: <Widget>[
+          const Icon(
             Icons.calendar_today,
             color: Config.primaryColor,
             size: 15,
           ),
-          SizedBox(
+          const SizedBox(
             width: 5,
           ),
           Text(
-            'Sunday,03/12/2023',
-            style: TextStyle(
+            '$day, $date',
+            style: const TextStyle(
               color: Config.primaryColor,
             ),
           ),
-          SizedBox(
+          const SizedBox(
             width: 20,
           ),
-          Icon(
+          const Icon(
             Icons.access_alarm,
             color: Config.primaryColor,
             size: 17,
           ),
-          SizedBox(
+          const SizedBox(
             width: 5,
           ),
           Flexible(
               child: Text(
-            '2:00 PM',
-            style: TextStyle(
+            time,
+            style: const TextStyle(
               color: Config.primaryColor,
             ),
           ))
