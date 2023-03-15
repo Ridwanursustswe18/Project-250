@@ -1,8 +1,17 @@
 import 'package:daktar_babu/utils/config.dart';
 import 'package:flutter/material.dart';
+import 'package:rating_dialog/rating_dialog.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../main.dart';
+import '../providers/dio_provider.dart';
 
 class AppointmentCard extends StatefulWidget {
-  const AppointmentCard({super.key});
+  const AppointmentCard({Key? key, required this.doctor, required this.color})
+      : super(key: key);
+
+  final Map<String, dynamic> doctor;
+  final Color color;
 
   @override
   State<AppointmentCard> createState() => _AppointmentCardState();
@@ -14,86 +23,144 @@ class _AppointmentCardState extends State<AppointmentCard> {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Config.primaryColor,
+        color: widget.color,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Material(
         color: Colors.transparent,
         child: Padding(
           padding: const EdgeInsets.all(20),
-          child: Column(children: <Widget>[
-            Row(
-              children: [
-                const CircleAvatar(
-                  radius: 40,
-                  backgroundImage: AssetImage('assets/doctor1.jpg'),
-                ),
-                const SizedBox(
-                  width: 10,
-                ),
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const <Widget>[
-                    Text(
-                      'Dr Sanjana',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                    SizedBox(
-                      height: 2,
-                    ),
-                    Text(
-                      'Dental',
-                      style: TextStyle(color: Colors.black),
-                    )
-                  ],
-                ),
-              ],
-            ),
-            Config.spaceSmall,
-            //schedule info
-            const ScheduleCard(),
-            Config.spaceSmall,
-            //action button
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
+          child: Column(
+            children: <Widget>[
+              //insert Row here
+              Row(
+                children: [
+                  CircleAvatar(
+                    backgroundImage: NetworkImage(
+                        "http://127.0.0.1:8000${widget.doctor['doctor_profile']}"), //insert doctor profile
+                  ),
+                  const SizedBox(
+                    width: 10,
+                  ),
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        'Dr ${widget.doctor['doctor_name']}',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      const SizedBox(
+                        height: 2,
+                      ),
+                      Text(
+                        widget.doctor['category'],
+                        style: const TextStyle(color: Colors.black),
+                      )
+                    ],
+                  ),
+                ],
+              ),
+              Config.spaceSmall,
+              //Schedule info here
+              ScheduleCard(
+                appointment: widget.doctor['appointments'],
+              ),
+              Config.spaceSmall,
+              //action button
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
                     child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.redAccent,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                      ),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      onPressed: () {},
+                    ),
                   ),
-                  child: const Text(
-                    'Cancel',
-                    style: TextStyle(color: Colors.white),
+                  const SizedBox(
+                    width: 20,
                   ),
-                  onPressed: () {},
-                )),
-                const SizedBox(
-                  width: 20,
-                ),
-                Expanded(
+                  Expanded(
                     child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueAccent,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                      ),
+                      onPressed: () {
+                        showDialog(
+                            context: context,
+                            builder: (context) {
+                              return RatingDialog(
+                                  initialRating: 1.0,
+                                  title: const Text(
+                                    'Rate the Doctor',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 25,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  message: const Text(
+                                    'Please help us to rate our Doctor',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                  image: const FlutterLogo(
+                                    size: 100,
+                                  ),
+                                  submitButtonText: 'Submit',
+                                  commentHint: 'Your Reviews',
+                                  onSubmitted: (response) async {
+                                    final SharedPreferences prefs =
+                                        await SharedPreferences.getInstance();
+                                    final token =
+                                        prefs.getString('token') ?? '';
+
+                                    final rating = await DioProvider()
+                                        .storeReviews(
+                                            response.comment,
+                                            response.rating,
+                                            widget.doctor['appointments']
+                                                ['id'], //this is appointment id
+                                            widget.doctor[
+                                                'doc_id'], //this is doctor id
+                                            token);
+
+                                    //if successful, then refresh
+                                    if (rating == 200 && rating != '') {
+                                      MyApp.navigatorKey.currentState!
+                                          .pushNamed('main');
+                                    }
+                                  });
+                            });
+                      },
+                      child: const Text(
+                        'Completed',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
                   ),
-                  child: const Text(
-                    'Completed',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                  onPressed: () {},
-                ))
-              ],
-            )
-          ]),
+                ],
+              )
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
+//Schedule Widget
 class ScheduleCard extends StatelessWidget {
-  const ScheduleCard({super.key});
+  const ScheduleCard({Key? key, required this.appointment}) : super(key: key);
+  final Map<String, dynamic> appointment;
 
   @override
   Widget build(BuildContext context) {
@@ -106,32 +173,35 @@ class ScheduleCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
-        children: const <Widget>[
-          Icon(
+        children: <Widget>[
+          const Icon(
             Icons.calendar_today,
             color: Colors.white,
             size: 15,
           ),
-          SizedBox(
+          const SizedBox(
             width: 5,
           ),
           Text(
-            'Monday,03/12/2023',
-            style: TextStyle(color: Colors.white),
+            '${appointment['day']}, ${appointment['date']}',
+            style: const TextStyle(color: Colors.white),
           ),
-          SizedBox(
+          const SizedBox(
             width: 20,
           ),
-          Icon(
+          const Icon(
             Icons.access_alarm,
             color: Colors.white,
-            size: 15,
+            size: 17,
           ),
-          SizedBox(
+          const SizedBox(
             width: 5,
           ),
           Flexible(
-              child: Text('2:00 PM', style: TextStyle(color: Colors.white)))
+              child: Text(
+            appointment['time'],
+            style: const TextStyle(color: Colors.white),
+          ))
         ],
       ),
     );

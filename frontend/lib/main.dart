@@ -1,11 +1,12 @@
 import 'package:daktar_babu/screens/auth_page.dart';
-import 'package:daktar_babu/screens/doctor_details.dart';
+import 'package:daktar_babu/screens/booking_page.dart';
 import 'package:daktar_babu/screens/success_booked.dart';
 import 'package:daktar_babu/utils/config.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import 'main_layout.dart';
-import 'screens/booking_page.dart';
+import 'models/auth_model.dart';
 
 void main() {
   runApp(const MyApp());
@@ -14,13 +15,20 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
+  //this is for push navigator
   static final navigatorKey = GlobalKey<NavigatorState>();
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      navigatorKey: navigatorKey,
-      title: 'Daktar Babu',
-      theme: ThemeData(
+    //define ThemeData here
+    return ChangeNotifierProvider<AuthModel>(
+      create: (context) => AuthModel(),
+      child: MaterialApp(
+        navigatorKey: navigatorKey,
+        title: 'Flutter Doctor App',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          //pre-define input decoration
           inputDecorationTheme: const InputDecorationTheme(
             focusColor: Config.primaryColor,
             border: Config.outlinedBorder,
@@ -31,23 +39,24 @@ class MyApp extends StatelessWidget {
             prefixIconColor: Colors.black38,
           ),
           scaffoldBackgroundColor: Colors.white,
-          bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+          bottomNavigationBarTheme: BottomNavigationBarThemeData(
             backgroundColor: Config.primaryColor,
             selectedItemColor: Colors.white,
             showSelectedLabels: true,
             showUnselectedLabels: false,
-            unselectedItemColor: Colors.grey,
+            unselectedItemColor: Colors.grey.shade700,
             elevation: 10,
             type: BottomNavigationBarType.fixed,
-          )),
-      initialRoute: '/',
-      routes: {
-        '/': (context) => const AuthPage(),
-        'main': (context) => const MainLayout(),
-        'doc_details': (context) => const DoctorDetails(),
-        'booking_page': (context) => const BookingPage(),
-        'success_booking': (context) => const AppointmentBooked(),
-      },
+          ),
+        ),
+        initialRoute: '/',
+        routes: {
+          '/': (context) => const AuthPage(),
+          'main': (context) => const MainLayout(),
+          'booking_page': (context) => const BookingPage(),
+          'success_booking': (context) => const AppointmentBooked(),
+        },
+      ),
     );
   }
 }
